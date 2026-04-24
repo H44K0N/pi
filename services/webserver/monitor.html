@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>pi / monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #080808;
+      --surface: #0f0f0f;
+      --surface2: #141414;
+      --border: #1e1e1e;
+      --green: #39ff14;
+      --green-dim: rgba(57,255,20,0.08);
+      --green-mid: rgba(57,255,20,0.3);
+      --amber: #ffb800;
+      --red: #ff3b3b;
+      --text: #aaa;
+      --text-dim: #444;
+      --text-bright: #e8e8e8;
+      --font: 'JetBrains Mono', monospace;
+    }
+
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px);
+      pointer-events: none; z-index: 1000;
+    }
+
+    .layout {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: 1.5rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      gap: 1.5rem;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      animation: fadeIn 0.4s ease;
+    }
+
+    .header-left { display: flex; align-items: baseline; gap: 1rem; }
+
+    h1 {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--green);
+      letter-spacing: 0.05em;
+    }
+    h1::before { content: '> '; opacity: 0.4; }
+
+    .breadcrumb { font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.1em; }
+
+    .header-right { display: flex; align-items: center; gap: 1.5rem; font-size: 0.65rem; color: var(--text-dim); }
+
+    .pulse-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 1.5s ease-in-out infinite;
+      display: inline-block; margin-right: 0.4rem;
+    }
+
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.2;} }
+
+    /* Main grid */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: auto auto auto;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      align-self: start;
+    }
+
+    .card {
+      background: var(--surface);
+      padding: 1.25rem 1.5rem;
+      animation: fadeIn 0.5s ease both;
+    }
+
+    .card:nth-child(1){animation-delay:0.05s}
+    .card:nth-child(2){animation-delay:0.10s}
+    .card:nth-child(3){animation-delay:0.15s}
+    .card:nth-child(4){animation-delay:0.20s}
+    .card:nth-child(5){animation-delay:0.25s}
+    .card:nth-child(6){animation-delay:0.30s}
+
+    .card.wide { grid-column: span 2; }
+    .card.full { grid-column: span 3; }
+
+    .card-label {
+      font-size: 0.55rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 1rem;
+    }
+
+    /* Big stat */
+    .stat-value {
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: var(--text-bright);
+      line-height: 1;
+      letter-spacing: -0.02em;
+      transition: color 0.3s;
+    }
+
+    .stat-value.warn { color: var(--amber); }
+    .stat-value.crit { color: var(--red); }
+
+    .stat-unit {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-left: 0.3rem;
+    }
+
+    .stat-sub {
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      margin-top: 0.4rem;
+    }
+
+    /* Bar */
+    .bar-track {
+      height: 3px;
+      background: var(--border);
+      margin: 0.75rem 0 0.4rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: var(--green);
+      transition: width 0.5s ease, background 0.3s;
+      box-shadow: 0 0 8px var(--green);
+    }
+
+    .bar-fill.warn { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+    .bar-fill.crit { background: var(--red); box-shadow: 0 0 8px var(--red); }
+
+    /* Sparkline canvas */
+    .sparkline { width: 100%; height: 48px; display: block; margin-top: 0.75rem; }
+
+    /* Services */
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      margin-top: 0.5rem;
+    }
+
+    .service {
+      background: var(--surface2);
+      padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .service-name { font-size: 0.7rem; color: var(--text); }
+
+    .service-status {
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .service-status.up { color: var(--green); }
+    .service-status.down { color: var(--red); }
+
+    /* Net row */
+    .net-row {
+      display: flex;
+      gap: 2rem;
+      margin-top: 0.5rem;
+    }
+
+    .net-item { flex: 1; }
+    .net-label { font-size: 0.55rem; color: var(--text-dim); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 0.3rem; }
+    .net-value { font-size: 1.4rem; font-weight: 500; color: var(--text-bright); }
+    .net-unit { font-size: 0.65rem; color: var(--text-dim); margin-left: 0.2rem; }
+
+    /* Temp */
+    .temp-display {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.5rem;
+      margin-top: 0.25rem;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding-top: 1rem;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    #error-banner {
+      display: none;
+      background: rgba(255,59,59,0.1);
+      border: 1px solid var(--red);
+      color: var(--red);
+      font-size: 0.65rem;
+      padding: 0.5rem 1rem;
+      letter-spacing: 0.1em;
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <header>
+    <div class="header-left">
+      <h1>pi.local</h1>
+      <span class="breadcrumb">/ monitor</span>
+    </div>
+    <div class="header-right">
+      <span><span class="pulse-dot"></span><span id="status-text">connecting...</span></span>
+      <span id="last-update">—</span>
+    </div>
+  </header>
+
+  <div id="error-banner">⚠ API unreachable — retrying...</div>
+
+  <div class="grid">
+
+    <!-- CPU -->
+    <div class="card">
+      <div class="card-label">// cpu usage</div>
+      <div>
+        <span class="stat-value" id="cpu-val">—</span><span class="stat-unit">%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="cpu-bar" style="width:0%"></div></div>
+      <div class="stat-sub" id="cpu-sub">— cores · — MHz</div>
+      <canvas class="sparkline" id="cpu-spark"></canvas>
+    </div>
+
+    <!-- RAM -->
+    <div class="card">
+      <div class="card-label">// memory</div>
+      <div>
+        <span class="stat-value" id="ram-val">—</span><span class="stat-unit">%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="ram-bar" style="width:0%"></div></div>
+      <div class="stat-sub" id="ram-sub">— / — GB</div>
+      <canvas class="sparkline" id="ram-spark"></canvas>
+    </div>
+
+    <!-- Temp -->
+    <div class="card">
+      <div class="card-label">// cpu temp</div>
+      <div class="temp-display">
+        <span class="stat-value" id="temp-val">—</span><span class="stat-unit">°C</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="temp-bar" style="width:0%"></div></div>
+      <div class="stat-sub">safe &lt;70°C · throttle &gt;80°C</div>
+      <canvas class="sparkline" id="temp-spark"></canvas>
+    </div>
+
+    <!-- Disk -->
+    <div class="card">
+      <div class="card-label">// disk</div>
+      <div>
+        <span class="stat-value" id="disk-val">—</span><span class="stat-unit">%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="disk-bar" style="width:0%"></div></div>
+      <div class="stat-sub" id="disk-sub">— / — GB</div>
+    </div>
+
+    <!-- Uptime -->
+    <div class="card">
+      <div class="card-label">// uptime</div>
+      <div class="stat-value" id="uptime-val" style="font-size:1.8rem">—</div>
+      <div class="stat-sub" style="margin-top:0.75rem">since last boot</div>
+    </div>
+
+    <!-- Network -->
+    <div class="card">
+      <div class="card-label">// network i/o</div>
+      <div class="net-row">
+        <div class="net-item">
+          <div class="net-label">↓ received</div>
+          <div><span class="net-value" id="net-recv">—</span><span class="net-unit">MB</span></div>
+        </div>
+        <div class="net-item">
+          <div class="net-label">↑ sent</div>
+          <div><span class="net-value" id="net-sent">—</span><span class="net-unit">MB</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Services -->
+    <div class="card full">
+      <div class="card-label">// services</div>
+      <div class="services-grid" id="services-grid">
+        <!-- injected by JS -->
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    <span>raspberry pi 4 · 8gb · trixie arm64</span>
+    <span id="clock">—</span>
+  </footer>
+
+</div>
+
+<script>
+  const HISTORY = 30;
+  const history = { cpu: [], ram: [], temp: [] };
+
+  function colorClass(val, warn, crit) {
+    if (val >= crit) return 'crit';
+    if (val >= warn) return 'warn';
+    return '';
+  }
+
+  function setVal(id, val, cls) {
+    const el = document.getElementById(id);
+    el.textContent = val;
+    el.className = 'stat-value' + (cls ? ' ' + cls : '');
+  }
+
+  function setBar(id, pct, cls) {
+    const el = document.getElementById(id);
+    el.style.width = pct + '%';
+    el.className = 'bar-fill' + (cls ? ' ' + cls : '');
+  }
+
+  function drawSparkline(canvasId, data, color) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = canvas.offsetWidth * dpr;
+    canvas.height = canvas.offsetHeight * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
+    ctx.clearRect(0, 0, w, h);
+    if (data.length < 2) return;
+
+    const max = 100;
+    const step = w / (HISTORY - 1);
+
+    ctx.beginPath();
+    data.forEach((v, i) => {
+      const x = i * step;
+      const y = h - (v / max) * h;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // fill
+    ctx.lineTo((data.length - 1) * step, h);
+    ctx.lineTo(0, h);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, color.replace(')', ', 0.15)').replace('rgb', 'rgba'));
+    grad.addColorStop(1, color.replace(')', ', 0)').replace('rgb', 'rgba'));
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+
+  function push(arr, val) {
+    arr.push(val);
+    if (arr.length > HISTORY) arr.shift();
+  }
+
+  async function fetchStats() {
+    try {
+      const res = await fetch('/api/stats');
+      if (!res.ok) throw new Error();
+      const d = await res.json();
+
+      document.getElementById('error-banner').style.display = 'none';
+      document.getElementById('status-text').textContent = 'live';
+
+      // CPU
+      const cpuCls = colorClass(d.cpu.percent, 70, 90);
+      setVal('cpu-val', d.cpu.percent.toFixed(1), cpuCls);
+      setBar('cpu-bar', d.cpu.percent, cpuCls);
+      document.getElementById('cpu-sub').textContent = `${d.cpu.count} cores · ${d.cpu.freq} MHz`;
+      push(history.cpu, d.cpu.percent);
+      drawSparkline('cpu-spark', history.cpu, '#39ff14');
+
+      // RAM
+      const ramCls = colorClass(d.ram.percent, 75, 90);
+      setVal('ram-val', d.ram.percent.toFixed(1), ramCls);
+      setBar('ram-bar', d.ram.percent, ramCls);
+      document.getElementById('ram-sub').textContent = `${d.ram.used_gb} / ${d.ram.total_gb} GB`;
+      push(history.ram, d.ram.percent);
+      drawSparkline('ram-spark', history.ram, '#39ff14');
+
+      // Temp
+      if (d.temp !== null) {
+        const tempPct = Math.min((d.temp / 90) * 100, 100);
+        const tempCls = colorClass(d.temp, 70, 80);
+        setVal('temp-val', d.temp, tempCls);
+        setBar('temp-bar', tempPct, tempCls);
+        push(history.temp, (d.temp / 90) * 100);
+        drawSparkline('temp-spark', history.temp, '#39ff14');
+      }
+
+      // Disk
+      const diskCls = colorClass(d.disk.percent, 80, 90);
+      setVal('disk-val', d.disk.percent.toFixed(1), diskCls);
+      setBar('disk-bar', d.disk.percent, diskCls);
+      document.getElementById('disk-sub').textContent = `${d.disk.used_gb} / ${d.disk.total_gb} GB`;
+
+      // Uptime
+      document.getElementById('uptime-val').textContent = d.uptime;
+
+      // Network
+      document.getElementById('net-recv').textContent = d.net.recv_mb.toLocaleString();
+      document.getElementById('net-sent').textContent = d.net.sent_mb.toLocaleString();
+
+      // Services
+      const grid = document.getElementById('services-grid');
+      grid.innerHTML = Object.entries(d.services).map(([name, up]) => `
+        <div class="service">
+          <span class="service-name">${name}</span>
+          <span class="service-status ${up ? 'up' : 'down'}">${up ? '● running' : '○ stopped'}</span>
+        </div>
+      `).join('');
+
+      document.getElementById('last-update').textContent =
+        new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    } catch {
+      document.getElementById('error-banner').style.display = 'block';
+      document.getElementById('status-text').textContent = 'offline';
+    }
+  }
+
+  function clock() {
+    document.getElementById('clock').textContent =
+      new Date().toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }) +
+      ' · ' +
+      new Date().toLocaleTimeString('en-GB');
+  }
+
+  fetchStats();
+  setInterval(fetchStats, 2000);
+  clock();
+  setInterval(clock, 1000);
+</script>
+</body>
+</html>

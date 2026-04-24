@@ -1,0 +1,11 @@
+services:
+  monitor:
+    build: .
+    container_name: pi-monitor
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - /sys:/sys:ro
+      - /proc:/proc:ro
+    pid: host
