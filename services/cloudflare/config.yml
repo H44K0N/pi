@@ -1,0 +1,7 @@
+tunnel: tischbein
+credentials-file: /home/haakon/.cloudflared/b6198040-68d2-4685-9fa1-a6fa0e3fb225.json
+
+ingress:
+  - hostname: tischbein.dev
+    service: http://localhost:80
+  - service: http_status:404
