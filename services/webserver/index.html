@@ -327,11 +327,14 @@
   setInterval(updateClock, 1000);
 
   // uptime via server if available, else hide
-  fetch('/api/uptime').then(r => r.text()).then(t => {
-    document.getElementById('uptime').textContent = 'up ' + t;
-  }).catch(() => {
-    document.getElementById('uptime').textContent = '';
-  });
+ fetch('/api/uptime').then(r => {
+  if (r.ok) return r.text();
+  throw new Error();
+}).then(t => {
+  document.getElementById('uptime').textContent = 'up ' + t;
+}).catch(() => {
+  document.getElementById('uptime').textContent = '';
+});
 </script>
 </body>
 </html>
