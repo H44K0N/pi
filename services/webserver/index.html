@@ -2,318 +2,229 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>pi.local</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg: #0d0d0d;
-      --surface: #141414;
-      --border: #222;
-      --green: #00ff88;
-      --green-dim: #00ff8833;
-      --green-mid: #00ff8866;
-      --text: #c8c8c8;
-      --text-dim: #555;
-      --text-bright: #eee;
-    }
-
-    html, body {
-      height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'IBM Plex Mono', monospace;
-      overflow-x: hidden;
-    }
-
-    /* scanline overlay */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0,0,0,0.08) 2px,
-        rgba(0,0,0,0.08) 4px
-      );
-      pointer-events: none;
-      z-index: 1000;
-    }
-
-    /* noise texture */
-    body::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-      pointer-events: none;
-      z-index: 999;
-      opacity: 0.4;
-    }
-
-    .layout {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      padding: 2rem;
-      max-width: 1100px;
-      margin: 0 auto;
-    }
-
-    header {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      padding-bottom: 1.5rem;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 2.5rem;
-      animation: fadeDown 0.6s ease both;
-    }
-
-    .header-left {
-      display: flex;
-      align-items: baseline;
-      gap: 1rem;
-    }
-
-    .hostname {
-      font-size: 1.1rem;
-      font-weight: 500;
-      color: var(--green);
-      letter-spacing: 0.05em;
-    }
-
-    .hostname::before { content: '> '; opacity: 0.5; }
-
-    .subtitle {
-      font-size: 0.7rem;
-      color: var(--text-dim);
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-    }
-
-    .status-bar {
-      display: flex;
-      gap: 1.5rem;
-      font-size: 0.65rem;
-      color: var(--text-dim);
-      letter-spacing: 0.08em;
-    }
-
-    .status-item {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-
-    .dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 6px var(--green);
-      animation: pulse 2s ease-in-out infinite;
-    }
-
-    .dot.offline { background: #555; box-shadow: none; animation: none; }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
-
-    .section-label {
-      font-size: 1rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      margin-bottom: 1rem;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 1px;
-      background: var(--border);
-      border: 1px solid var(--border);
-      margin-bottom: 1px;
-    }
-
-    .card {
-      background: var(--surface);
-      padding: 1.5rem;
-      cursor: pointer;
-      text-decoration: none;
-      color: inherit;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      position: relative;
-      overflow: hidden;
-      transition: background 0.15s;
-      animation: fadeUp 0.5s ease both;
-    }
-
-    .card:nth-child(1) { animation-delay: 0.05s; }
-    .card:nth-child(2) { animation-delay: 0.10s; }
-    .card:nth-child(3) { animation-delay: 0.15s; }
-    .card:nth-child(4) { animation-delay: 0.20s; }
-    .card:nth-child(5) { animation-delay: 0.25s; }
-    .card:nth-child(6) { animation-delay: 0.30s; }
-
-    .card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: var(--green-dim);
-      opacity: 0;
-      transition: opacity 0.15s;
-    }
-
-    .card:hover::before { opacity: 1; }
-
-    .card:hover .card-icon { color: var(--green); }
-    .card:hover .card-name { color: var(--green); }
-
-    .card-icon {
-      font-size: 1.4rem;
-      line-height: 1;
-      transition: color 0.15s;
-    }
-
-    .card-name {
-      font-size: 0.8rem;
-      font-weight: 500;
-      color: var(--text-bright);
-      letter-spacing: 0.05em;
-      transition: color 0.15s;
-    }
-
-    .card-desc {
-      font-size: 0.65rem;
-      color: var(--text-dim);
-      line-height: 1.5;
-      font-family: 'IBM Plex Sans', sans-serif;
-    }
-
-    .card-status {
-      margin-top: auto;
-      font-size: 0.6rem;
-      color: var(--text-dim);
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-
-    .card-status .dot { width: 4px; height: 4px; }
-
-    .card.coming-soon {
-      opacity: 0.4;
-      cursor: default;
-    }
-    .card.coming-soon::before { display: none; }
-
-    footer {
-      margin-top: auto;
-      padding-top: 2rem;
-      border-top: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.6rem;
-      color: var(--text-dim);
-      letter-spacing: 0.1em;
-      animation: fadeUp 0.6s 0.4s ease both;
-    }
-
-    .clock { color: var(--text-dim); }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(12px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes fadeDown {
-      from { opacity: 0; transform: translateY(-8px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Haakon Tischbein</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-<div class="layout">
 
-  <header>
-    <div class="header-left">
-      <span class="hostname">pi.local</span>
-      <span class="subtitle">home server</span>
+  <main>
+    <div class="intro">
+      <h1>Haakon</h1>
+      <p class="bio">Applied Computer Technology student at OsloMet. Interested in DevOps and platform engineering, self-hosting, IaC, and getting things to run reliably.</p>
+      <p class="section-label" style="margin-bottom:12px;">Familiar</p>
+      <div class="skill-icons">
+        <span title="Linux"><img src="https://skillicons.dev/icons?i=linux" alt="Linux"/></span>
+        <span title="Bash"><img src="https://skillicons.dev/icons?i=bash" alt="Bash"/></span>
+        <span title="Nginx"><img src="https://skillicons.dev/icons?i=nginx" alt="Nginx"/></span>
+        <span title="Git"><img src="https://skillicons.dev/icons?i=git" alt="Git"/></span>
+        <span title="Java"><img src="https://skillicons.dev/icons?i=java" alt="Java"/></span>
+        <span title="Spring"><img src="https://skillicons.dev/icons?i=spring" alt="Spring"/></span>
+        <span title="SQL"><img src="https://skillicons.dev/icons?i=mysql" alt="SQL"/></span>
+        <span title="HTML"><img src="https://skillicons.dev/icons?i=html" alt="HTML"/></span>
+        <span title="CSS"><img src="https://skillicons.dev/icons?i=css" alt="CSS"/></span>
+      </div>
+
+      <p class="section-label" style="margin-top:20px;margin-bottom:12px;">Explored</p>
+      <div class="skill-icons">
+        <span title="Python"><img src="https://skillicons.dev/icons?i=python" alt="Python"/></span>
+        <span title="Docker"><img src="https://skillicons.dev/icons?i=docker" alt="Docker"/></span>
+        <span title="Cloudflare"><img src="https://skillicons.dev/icons?i=cloudflare" alt="Cloudflare"/></span>
+        <span title="Kubernetes"><img src="https://skillicons.dev/icons?i=kubernetes" alt="Kubernetes"/></span>
+        <span title="Terraform"><img src="https://skillicons.dev/icons?i=terraform" alt="Terraform"/></span>
+      </div>
+      <br>
+      <a class="jump-link" href="#education">Education &amp; experience ↓</a>
     </div>
-    <div class="status-bar">
-      <div class="status-item"><div class="dot"></div> online</div>
-      <div class="status-item" id="uptime">uptime —</div>
+
+    <div class="projects">
+
+      <p class="section-label">Apps</p>
+
+      <div class="card">
+        <div class="card-head">
+          <span class="card-name">Sjekka</span>
+          <span class="card-status">live</span>
+        </div>
+        <p class="card-desc">Norwegian grocery price comparison. Upload a receipt and get canonical product matches across stores.</p>
+        <div class="card-actions">
+          <a class="btn-primary" href="/sjekka">Visit</a>
+          <a class="btn-outline" href="https://github.com/H44K0N/sjekka" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <span class="card-name">Pi Monitor</span>
+          <span class="card-status">live</span>
+        </div>
+        <p class="card-desc">Live system stats for the Raspberry Pi 4 — CPU, memory, temp, disk, and running services.</p>
+        <div class="card-actions">
+          <a class="btn-primary" href="/monitor.html">Visit</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <span class="card-name">Study Page</span>
+          <span class="card-status wip">in progress</span>
+        </div>
+        <p class="card-desc">Self-hosted study resource site. Coming today.</p>
+        <div class="card-actions">
+          <a class="btn-outline" href="https://github.com/H44K0N" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </div>
+
+      <p class="section-label" style="margin-top:10px;">Projects</p>
+
+      <a class="repo" href="https://github.com/H44K0N/pi" target="_blank" rel="noopener">
+        <span>
+          <span class="repo-name">pi</span>
+          <span style="margin-left:10px;font-size:12px;">Homelab config, scripts &amp; services</span>
+        </span>
+        <span class="repo-arrow">github</span>
+      </a>
+
     </div>
-  </header>
+  </main>
 
-  <div class="section-label">// services</div>
+  <div id="education" class="edu-section">
+    <div class="edu-inner edu-collapsed">
 
-  <div class="grid">
+      <div>
+        <p class="section-label">Education</p>
+        <div class="curriculum">
+          <div class="curriculum-toggle" role="button" tabindex="0">
+            <span class="curriculum-toggle-name">BSc Applied Computer Technology</span>
+            <span class="curriculum-count">16 courses · 140 credits</span>
+          </div>
+          <div class="curriculum-body"><div class="curriculum-inner">
+            <table class="course-table">
+              <thead>
+                <tr><th>Code</th><th>Subject</th><th>Credits</th></tr>
+              </thead>
+              <tbody>
+                <tr class="sem-row"><td colspan="3">2026 Spring</td></tr>
+                <tr><td>ADSE3200</td><td>Visualisering</td><td>10</td></tr>
+                <tr><td>ADTS2310</td><td>Testing av programvare</td><td>10</td></tr>
+                <tr><td>DATA2410</td><td>Datanettverk og skytjenester</td><td>10</td></tr>
+                <tr><td>DATA2500</td><td>Operativsystemer</td><td>10</td></tr>
+                <tr class="sem-row"><td colspan="3">2025 Autumn</td></tr>
+                <tr><td>ADSE2100</td><td>Menneske maskin interaksjon</td><td>10</td></tr>
+                <tr><td>DAFE2200</td><td>Systemutvikling</td><td>10</td></tr>
+                <tr><td>DAPE1300</td><td>Diskret matematikk</td><td>10</td></tr>
+                <tr><td>DATS2300</td><td>Algoritmer og datastrukturer</td><td>10</td></tr>
+                <tr class="sem-row"><td colspan="3">2025 Spring</td></tr>
+                <tr><td>ADSE1310</td><td>Internet of Things</td><td>10</td></tr>
+                <tr><td>DATA1500</td><td>Databaser</td><td>10</td></tr>
+                <tr><td>DATA1700</td><td>Webprogrammering</td><td>10</td></tr>
+                <tr class="sem-row"><td colspan="3">2024 Autumn</td></tr>
+                <tr><td>ADTS1600</td><td>Interaksjonsdesign og prototyping</td><td>10</td></tr>
+                <tr><td>DAPE1400</td><td>Programmering</td><td>10</td></tr>
+                <tr><td>DATA1100</td><td>Teknologi og samfunn for programmerere</td><td>5</td></tr>
+                <tr><td>DATA1200</td><td>Webutvikling og inkluderende design</td><td>5</td></tr>
+              </tbody>
+            </table>
+          </div></div>
+        </div>
+      </div>
 
-    <a href="https://github.com/H44K0N/pi" class="card">
-      <div class="card-icon">≡</div>
-      <div class="card-name">Docs</div>
-      <div class="card-desc">Documentation</div>
-      <div class="card-status"><div class="dot"></div>Active</div>
-    </a>
+      <div>
+        <p class="section-label">Experience</p>
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-date">2024 - now</div>
+            <div class="tl-body">
+              <div class="tl-title">OsloMet</div>
+              <div class="tl-sub">BSc Applied Computer Technology</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">2023 - now</div>
+            <div class="tl-body">
+              <div class="tl-title">Oslo Kommune</div>
+              <div class="tl-sub">Care assistant, Vinderenhjemmet</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">2023</div>
+            <div class="tl-body">
+              <div class="tl-title">Åmot Kommune</div>
+              <div class="tl-sub">Care assistant, Ryslingmoen — dementia ward, mostly nights</div>
+            </div>
+          </div>
+          <div class="tl-item tl-hidden">
+            <div class="tl-date">2021</div>
+            <div class="tl-body">
+              <div class="tl-title">UCO Kjeller</div>
+              <div class="tl-sub">Installation and maintenance of modular buildings</div>
+            </div>
+          </div>
+          <div class="tl-item tl-hidden">
+            <div class="tl-date">2019 - 2020</div>
+            <div class="tl-body">
+              <div class="tl-title">Norwegian Army</div>
+              <div class="tl-sub">Conscript — battalion representative for 140 soldiers, operations assistant at HQ. Promoted to Leading Private.</div>
+            </div>
+          </div>
+          <div class="tl-item tl-hidden">
+            <div class="tl-date">2017 - 2019</div>
+            <div class="tl-body">
+              <div class="tl-title">UCO Kjeller</div>
+              <div class="tl-sub">Seasonal work during holidays</div>
+            </div>
+          </div>
+          <div class="tl-expand">Show more</div>
+        </div>
 
-    <a href="/monitor.html" class="card">
-      <div class="card-icon">⎍</div>
-      <div class="card-name">Monitor</div>
-      <div class="card-desc">System stats</div>
-      <div class="card-status"><div class="dot"></div>active</div>
-    </a>
-    
-    <a href="/sjekka" class="card">
-      <div class="card-icon">🛒</div>
-      <div class="card-name">Sjekka</div>
-      <div class="card-desc">Crowdsourced grocery price comparison</div>
-      <div class="card-status"><div class="dot"></div>active</div>
-   </a>
+        <p class="section-label" style="margin-top:32px;">Volunteer</p>
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-date">2026</div>
+            <div class="tl-body">
+              <div class="tl-title">Øyafestivalen</div>
+              <div class="tl-sub">IT department</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">2025</div>
+            <div class="tl-body">
+              <div class="tl-title">Øyafestivalen</div>
+              <div class="tl-sub">Festival host — entry, audience assistance</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">2024</div>
+            <div class="tl-body">
+              <div class="tl-title">Øyafestivalen</div>
+              <div class="tl-sub">Runner, security</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">2018</div>
+            <div class="tl-body">
+              <div class="tl-title">Granittrock</div>
+              <div class="tl-sub">Festival host — entry, audience assistance</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">2018</div>
+            <div class="tl-body">
+              <div class="tl-title">Nebbenfestivalen</div>
+              <div class="tl-sub">Stage breakdown and cleanup</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
 
   <footer>
-    <span>raspberry pi 4 — 8gb</span>
-    <span class="clock" id="clock"></span>
+    <span>Site hosted on a Raspberry Pi 4 in Oslo</span>
   </footer>
 
-</div>
-
-<script>
-  function updateClock() {
-    const now = new Date();
-    document.getElementById('clock').textContent =
-      now.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' }) +
-      '  ' +
-      now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  }
-  updateClock();
-  setInterval(updateClock, 1000);
-
-  // uptime via server if available, else hide
- fetch('/api/uptime').then(r => {
-  if (r.ok) return r.text();
-  throw new Error();
-}).then(t => {
-  document.getElementById('uptime').textContent = 'up ' + t;
-}).catch(() => {
-  document.getElementById('uptime').textContent = '';
-});
-</script>
+  <script src="/main.js"></script>
 </body>
 </html>
